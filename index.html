@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polished Exoplanet Telemetry Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0b0d13;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 95vh;
+            overflow: hidden;
+        }
+        h2 {
+            margin: 0 0 5px 0;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            color: #f1f2f6;
+            font-size: 22px;
+        }
+        p.subtitle {
+            margin: 0 0 20px 0;
+            font-size: 13px;
+            color: #718096;
+            letter-spacing: 0.5px;
+        }
+        #simulation-container {
+            display: flex;
+            gap: 25px;
+            background: #121620;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+            border: 1px solid #1e2538;
+        }
+        #canvas-wrapper {
+            position: relative;
+            background: #07090e;
+            border-radius: 10px;
+            border: 1px solid #1a202c;
+            padding: 5px;
+        }
+        canvas {
+            display: block;
+            border-radius: 6px;
+        }
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            width: 320px;
+            justify-content: space-between;
+        }
+        .telemetry-display {
+            background: #171d2c;
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid #232d42;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .telemetry-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 6px;
+        }
+        .telemetry-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .telemetry-label {
+            color: #a0aec0;
+        }
+        .telemetry-value {
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .controls-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .label-text {
+            color: #cbd5e0;
+        }
+        .slider-val {
+            color: #3b82f6;
+            font-weight: bold;
+        }
+        input[type=range] {
+            width: 100%;
+            accent-color: #3b82f6;
+            cursor: pointer;
+            height: 6px;
+            border-radius: 3px;
+            background: #2d3748;
+        }
+        #vel-meter {
+            color: #2ed573;
+        }
+        #wobble-meter {
+            color: #ffa500;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Exoplanet Orbital Telemetry</h2>
+    <p class="subtitle">Barycentric Gravitational Dynamics Engine</p>
+
+    <div id="simulation-container">
+        <div id="canvas-wrapper">
+            <canvas id="orbitCanvas" width="500" height="500"></canvas>
+        </div>
+
+        <div class="side-panel">
+            <div class="telemetry-display">
+                <div class="telemetry-row">
+                    <span class="telemetry-label">Mass Ratio (Star : Planet)</span>
+                    <span class="telemetry-value" id="ratioReadout" style="color: #cbd5e0;">10.0 : 1.0</span>
+                </div>
+                <div class="telemetry-row">
+                    <span class="telemetry-label">Planet Apparent Radius</span>
+                    <span class="telemetry-value" id="radiusReadout" style="color: #0abde3;">8.0 px</span>
+                </div>
+                <div class="telemetry-row">
+                    <span class="telemetry-label">Star Wobble Orbit Path</span>
+                    <span class="telemetry-value" id="wobble-meter">15.0 px</span>
+                </div>
+                <div class="telemetry-row">
+                    <span class="telemetry-label">Relative Orbital Velocity</span>
+                    <span class="telemetry-value" id="vel-meter">0.00 px/s</span>
+                </div>
+            </div>
+
+            <div class="controls-grid">
+                <div class="control-group">
+                    <div class="control-header">
+                        <span class="label-text">Engine Warp Speed</span>
+                        <span class="slider-val" id="speedVal">1.0x</span>
+                    </div>
+                    <input type="range" id="speedSlider" min="0" max="4" step="0.1" value="1">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-header">
+                        <span class="label-text">Orbital Separation Distance</span>
+                        <span class="slider-val" id="distanceVal">180 px</span>
+                    </div>
+                    <input type="range" id="distanceSlider" min="100" max="220" step="5" value="180">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-header">
+                        <span class="label-text">Planet Mass Scaling</span>
+                        <span class="slider-val" id="massVal">1.0x</span>
+                    </div>
+                    <input type="range" id="massSlider" min="0.1" max="3.0" step="0.1" value="1">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-header">
+                        <span class="label-text">Orbital Eccentricity</span>
+                        <span class="slider-val" id="eccVal">0.00</span>
+                    </div>
+                    <input type="range" id="eccSlider" min="0" max="0.7" step="0.05" value="0">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('orbitCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const speedSlider = document.getElementById('speedSlider');
+        const distanceSlider = document.getElementById('distanceSlider');
+        const massSlider = document.getElementById('massSlider');
+        const eccSlider = document.getElementById('eccSlider');
+
+        const speedVal = document.getElementById('speedVal');
+        const distanceVal = document.getElementById('distanceVal');
+        const massVal = document.getElementById('massVal');
+        const eccVal = document.getElementById('eccVal');
+
+        const ratioReadout = document.getElementById('ratioReadout');
+        const radiusReadout = document.getElementById('radiusReadout');
+        const wobbleMeter = document.getElementById('wobble-meter');
+        const velMeter = document.getElementById('vel-meter');
+
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        let angle = 0;
+        const trailHistory = [];
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const speedMod = parseFloat(speedSlider.value) || 0;
+            const separationPx = parseFloat(distanceSlider.value) || 180;
+            const massMod = parseFloat(massSlider.value) || 1;
+            const ecc = parseFloat(eccSlider.value) || 0;
+
+            speedVal.innerText = speedMod.toFixed(1) + 'x';
+            distanceVal.innerText = separationPx + ' px';
+            massVal.innerText = massMod.toFixed(1) + 'x';
+            eccVal.innerText = ecc.toFixed(2);
+
+            const starMassBase = 100;
+            const scaledPlanetMass = 10 * massMod;
+            const totalMassSystem = starMassBase + scaledPlanetMass;
+
+            const proportionalStarRatio = (starMassBase / scaledPlanetMass).toFixed(1);
+            ratioReadout.innerText = proportionalStarRatio + " : 1.0";
+
+            const currentPlanetRadiusPx = 5 + (massMod * 3);
+            radiusReadout.innerText = currentPlanetRadiusPx.toFixed(1) + " px";
+
+            const a_planet = separationPx * (starMassBase / totalMassSystem);
+            const a_star = separationPx * (scaledPlanetMass / totalMassSystem);
+
+            wobbleMeter.innerText = a_star.toFixed(1) + " px";
+
+            const r_planet = (a_planet * (1 - ecc * ecc)) / (1 + ecc * Math.cos(angle));
+            const planetX = cx + r_planet * Math.cos(angle);
+            const planetY = cy + r_planet * Math.sin(angle);
+
+            const r_star = (a_star * (1 - ecc * ecc)) / (1 + ecc * Math.cos(angle + Math.PI));
+            const starX = cx + r_star * Math.cos(angle + Math.PI);
+            const starY = cy + r_star * Math.sin(angle + Math.PI);
+
+            trailHistory.push({px: planetX, py: planetY, sx: starX, sy: starY});
+            if (trailHistory.length > 55) {
+                trailHistory.shift();
+            }
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height);
+            ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy);
+            ctx.stroke();
+
+            if (trailHistory.length > 1) {
+                for (let i = 1; i < trailHistory.length; i++) {
+                    const opacity = i / trailHistory.length;
+                    
+                    ctx.strokeStyle = 'rgba(10, 205, 227, ' + (opacity * 0.5) + ')';
+                    ctx.lineWidth = 3;
