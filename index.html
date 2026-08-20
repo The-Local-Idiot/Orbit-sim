@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Space Telemetry Console</title>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background: #060913;
+        color: #00f2ff;
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        overflow: hidden;
+    }
+
+    #console-container {
+        display: flex;
+        background: rgba(10, 15, 30, 0.85);
+        border: 2px solid #00f2ff;
+        box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+        border-radius: 12px;
+        padding: 20px;
+        gap: 25px;
+        backdrop-filter: blur(10px);
+    }
+
+    .screen-section {
+        position: relative;
+        background: #02040a;
+        border: 1px solid #1a365d;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    canvas {
+        display: block;
+        box-shadow: inset 0 0 50px rgba(0,0,0,0.9);
+    }
+
+    .control-panel {
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .header-block {
+        border-bottom: 2px dashed #1a365d;
+        padding-bottom: 12px;
+        margin-bottom: 15px;
+    }
+
+    h1 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #fff;
+        text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+    }
+
+    .status-tag {
+        font-size: 11px;
+        color: #00ff66;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 4px;
+        display: inline-block;
+    }
+
+    .data-stream {
+        background: rgba(2, 4, 10, 0.8);
+        border: 1px solid #1a365d;
+        border-radius: 6px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+
+    .data-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        font-family: monospace;
+    }
+
+    .data-label {
+        color: #718096;
+    }
+
+    .data-val {
+        color: #fff;
+        font-weight: bold;
+    }
+
+    .sliders-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .slider-box {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .slider-label-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #a0aec0;
+    }
+
+    .current-num {
+        color: #ff007f;
+        font-weight: bold;
+        text-shadow: 0 0 5px rgba(255, 0, 127, 0.4);
+    }
+
+    input[type=range] {
+        -webkit-appearance: none;
+        width: 100%;
+        background: #1a365d;
+        height: 4px;
+        border-radius: 2px;
+        outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #00f2ff;
+        box-shadow: 0 0 8px #00f2ff;
+        cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+        background: #ff007f;
+        box-shadow: 0 0 12px #ff007f;
+    }
+</style>
+</head>
+
+<body>
+
+<div id="console-container">
+
+    <div class="screen-section">
+        <canvas id="radarScreen" width="520" height="520"></canvas>
+    </div>
+
+    <div class="control-panel">
+
+        <div>
+            <div class="header-block">
+                <h1>SYS.ORBITAL.V2</h1>
+                <span class="status-tag">// TELEMETRY LIVE</span>
+            </div>
+
+            <div class="data-stream">
+
+                <div class="data-row">
+                    <span class="data-label">MASS BALANCE Ratio</span>
+                    <span class="data-val" id="hudRatio">--</span>
+                </div>
+
+                <div class="data-row">
+                    <span class="data-label">PLANET SCALE Radius</span>
+                    <span class="data-val" id="hudRadius" style="color:#ff007f;">--</span>
+                </div>
+
+                <div class="data-row">
+                    <span class="data-label">STELLAR WOBBLE Width</span>
+                    <span class="data-val" id="hudWobble" style="color:#ffaa00;">--</span>
+                </div>
+
+                <div class="data-row">
+                    <span class="data-label">VECTOR VELOCITY</span>
+                    <span class="data-val" id="hudVelocity" style="color:#00ff66;">--</span>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="sliders-stack">
+
+            <div class="slider-box">
+                <div class="slider-label-row">
+                    <span>Warp Core Speed</span>
+                    <span class="current-num" id="lblSpeed">1.0x</span>
+                </div>
+                <input type="range" id="inputSpeed"
+                       min="0" max="4" step="0.1" value="1">
+            </div>
+
+            <div class="slider-box">
+                <div class="slider-label-row">
+                    <span>Separation Span</span>
+                    <span class="current-num" id="lblDist">170 px</span>
+                </div>
+                <input type="range" id="inputDist"
+                       min="80" max="230" step="5" value="170">
+            </div>
+
+            <div class="slider-box">
+                <div class="slider-label-row">
+                    <span>Planet Mass</span>
+                    <span class="current-num" id="lblMass">1.0x</span>
+                </div>
+                <input type="range" id="inputMass"
+                       min="0.1" max="3.0" step="0.1" value="1">
+            </div>
+
+            <div class="slider-box">
+                <div class="slider-label-row">
+                    <span>Orbit Oval (Ecc)</span>
+                    <span class="current-num" id="lblEcc">0.00</span>
+                </div>
+                <input type="range" id="inputEcc"
+                       min="0" max="0.7" step="0.05" value="0">
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+
+const canvas = document.getElementById('radarScreen');
+const ctx = canvas.getContext('2d');
+
+const speedSl = document.getElementById('inputSpeed');
+const distSl  = document.getElementById('inputDist');
+const massSl  = document.getElementById('inputMass');
+const eccSl   = document.getElementById('inputEcc');
+
+const lblSpeed = document.getElementById('lblSpeed');
+const lblDist  = document.getElementById('lblDist');
+const lblMass  = document.getElementById('lblMass');
+const lblEcc   = document.getElementById('lblEcc');
+
+const hudRatio    = document.getElementById('hudRatio');
+const hudRadius   = document.getElementById('hudRadius');
+const hudWobble   = document.getElementById('hudWobble');
+const hudVelocity = document.getElementById('hudVelocity');
+
+const cx = canvas.width / 2;
+const cy = canvas.height / 2;
+
+let meanAnomaly = 0;
+let lastTime = performance.now();
+
+const historyBuffer = [];
+
+
+/* --------------------------------------------------
+   KEPLER SOLVER
+-------------------------------------------------- */
+
+function solveKepler(M, e) {
+
+    let E = M;
+
+    for (let i = 0; i < 8; i++) {
+
+        const delta =
+            (E - e * Math.sin(E) - M) /
+            (1 - e * Math.cos(E));
+
+        E -= delta;
+
+        if (Math.abs(delta) < 0.000001)
+            break;
+    }
+
+    return E;
+}
+
+
+/* --------------------------------------------------
+   MAIN SIMULATION
+-------------------------------------------------- */
+
+function renderEngineLoop(now) {
+
+    const dt = Math.min((now - lastTime) / 1000, 0.05);
+    lastTime = now;
+
+    ctx.fillStyle = '#02040a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+
+    /* INPUTS */
+
+    const speedValue = parseFloat(speedSl.value);
+    const totalDistance = parseFloat(distSl.value);
+    const massMultiplier = parseFloat(massSl.value);
+    const eccentricity = parseFloat(eccSl.value);
+
+
+    /* UI */
+
+    lblSpeed.innerText = speedValue.toFixed(1) + 'x';
+    lblDist.innerText = totalDistance + ' px';
+    lblMass.innerText = massMultiplier.toFixed(1) + 'x';
+    lblEcc.innerText = eccentricity.toFixed(2);
+
+
+    /* MASSES */
+
+    const massStar = 100;
+    const massPlanet = 8 * massMultiplier;
+    const totalMass = massStar + massPlanet;
+
+
+    hudRatio.innerText =
+        (massStar / massPlanet).toFixed(1) + ' : 1.0';
+
+
+    /* VISUAL PLANET SIZE */
+
+    const planetRadius =
+        4 + massMultiplier * 3.5;
+
+    hudRadius.innerText =
+        planetRadius.toFixed(1) + ' px';
+
+
+    /* --------------------------------------------------
+       TWO-BODY BARYCENTRIC GEOMETRY
+
+       totalDistance = semi-major axis of the
+       relative orbit.
+
+       The planet and star then share the same
+       relative orbital position but divide the
+       distance according to their masses.
+    -------------------------------------------------- */
+
+    const planetOrbitRadius =
+        totalDistance * (massStar / totalMass);
+
+    const starOrbitRadius =
+        totalDistance * (massPlanet / totalMass);
+
+
+    hudWobble.innerText =
+        starOrbitRadius.toFixed(1) + ' px';
+
+
+    /* --------------------------------------------------
+       KEPLERIAN TIME EVOLUTION
+
+       Mean anomaly increases uniformly with time.
+       Kepler's equation converts it to eccentric anomaly.
+    -------------------------------------------------- */
+
+    const orbitalRate =
+        0.65 * speedValue;
+
+    meanAnomaly += orbitalRate * dt;
+
+    if (meanAnomaly > Math.PI * 2)
+        meanAnomaly -= Math.PI * 2;
+
+
+    /* Solve Kepler's equation */
+
+    const E =
+        solveKepler(meanAnomaly, eccentricity);
+
+
+    /*
+       Convert eccentric anomaly into
+       orbital-plane coordinates.
+
+       This gives a physically consistent
+       ellipse with the barycenter at the focus.
+    */
+
+    const relativeX =
+        totalDistance *
+        (Math.cos(E) - eccentricity);
+
+    const relativeY =
+        totalDistance *
+        Math.sqrt(1 - eccentricity * eccentricity) *
+        Math.sin(E);
+
+
+    /* Split relative position between bodies */
+
+    const planetX =
+        cx + relativeX * (massStar / totalMass);
+
+    const planetY =
+        cy + relativeY * (massStar / totalMass);
+
+
+    const starX =
+        cx - relativeX * (massPlanet / totalMass);
+
+    const starY =
+        cy - relativeY * (massPlanet / totalMass);
+
+
+    /* --------------------------------------------------
+       TRAILS
+    -------------------------------------------------- */
+
+    historyBuffer.push({
+        px: planetX,
+        py: planetY,
+        sx: starX,
+        sy: starY
+    });
+
+    if (historyBuffer.length > 90)
+        historyBuffer.shift();
+
+
+    /* --------------------------------------------------
+       RADAR RINGS
+    -------------------------------------------------- */
+
+    ctx.strokeStyle =
+        'rgba(26, 54, 93, 0.25)';
+
+    ctx.lineWidth = 1;
+
+    for (let r = 50; r <= 250; r += 50) {
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+
+    }
+
+
+    /* --------------------------------------------------
+       ORBIT PATH
+
+       Draw the actual ellipse rather than just
+       circular radar rings.
+    -------------------------------------------------- */
+
+    ctx.strokeStyle =
+        'rgba(0,242,255,0.12)';
+
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+
+    for (let a = 0; a <= Math.PI * 2; a += 0.025) {
+
+        const orbitX =
+            totalDistance *
+            (Math.cos(a) - eccentricity);
+
+        const orbitY =
+            totalDistance *
+            Math.sqrt(1 - eccentricity * eccentricity) *
+            Math.sin(a);
+
+        const px =
+            cx + orbitX * (massStar / totalMass);
+
+        const py =
+            cy + orbitY * (massStar / totalMass);
+
+        if (a === 0)
+            ctx.moveTo(px, py);
+        else
+            ctx.lineTo(px, py);
+    }
+
+    ctx.stroke();
+
+
+    /* --------------------------------------------------
+       PARTICLE TRAILS
+    -------------------------------------------------- */
+
+    if (historyBuffer.length > 1) {
+
+        for (let i = 1; i < historyBuffer.length; i++) {
+
+            const fade =
+                i / historyBuffer.length;
+
+
+            /* Planet trail */
+
+            ctx.strokeStyle =
+                `rgba(0,242,255,${fade * 0.45})`;
+
+            ctx.lineWidth = 2.5;
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                historyBuffer[i - 1].px,
+                historyBuffer[i - 1].py
+            );
+
+            ctx.lineTo(
+                historyBuffer[i].px,
+                historyBuffer[i].py
+            );
+
+            ctx.stroke();
+
+
+            /* Star wobble trail */
+
+            ctx.strokeStyle =
+                `rgba(255,170,0,${fade * 0.35})`;
+
+            ctx.lineWidth = 1.5;
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                historyBuffer[i - 1].sx,
+                historyBuffer[i - 1].sy
+            );
+
+            ctx.lineTo(
+                historyBuffer[i].sx,
+                historyBuffer[i].sy
+            );
+
+            ctx.stroke();
+        }
+    }
+
+
+    /* --------------------------------------------------
+       CONNECTING GRAVITY VECTOR
+    -------------------------------------------------- */
+
+    ctx.strokeStyle =
+        'rgba(0,242,255,0.05)';
+
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+
+    ctx.moveTo(starX, starY);
+    ctx.lineTo(planetX, planetY);
+
+    ctx.stroke();
+
+
+    /* --------------------------------------------------
+       STAR
+    -------------------------------------------------- */
+
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = '#ffaa00';
+
+    ctx.fillStyle = '#ffaa00';
+
+    ctx.beginPath();
+    ctx.arc(starX, starY, 15, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+
+    /* --------------------------------------------------
+       PLANET
+    -------------------------------------------------- */
+
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#00f2ff';
+
+    ctx.fillStyle = '#00f2ff';
+
+    ctx.beginPath();
+    ctx.arc(
+        planetX,
+        planetY,
+        planetRadius,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+
+    /* --------------------------------------------------
+       BARYCENTER
+    -------------------------------------------------- */
+
+    ctx.strokeStyle = '#ff007f';
+    ctx.lineWidth = 1.5;
+
+    ctx.beginPath();
+
+    ctx.moveTo(cx - 8, cy);
+    ctx.lineTo(cx + 8, cy);
+
+    ctx.moveTo(cx, cy - 8);
+    ctx.lineTo(cx, cy + 8);
+
+    ctx.stroke();
+
+
+    ctx.fillStyle = '#ff007f';
+    ctx.font = '9px monospace';
+
+    ctx.fillText(
+        'BARYCENTER FOCUS',
+        cx + 12,
+        cy + 3
+    );
+
+
+    /* --------------------------------------------------
+       ORBITAL VELOCITY
+
+       Relative orbital velocity:
+
+       v = sqrt(mu * (2/r - 1/a))
+
+       We use a visual gravitational constant
+       scaled for the simulation.
+    -------------------------------------------------- */
+
+    const r =
+        Math.sqrt(
+            relativeX * relativeX +
+            relativeY * relativeY
+        );
+
+    const mu = 18000;
+
+    const orbitalVelocity =
+        Math.sqrt(
+            Math.max(
+                0,
+                mu * (2 / r - 1 / totalDistance)
+            )
+        );
+
+    hudVelocity.innerText =
+        speedValue === 0
+            ? '0.00 px/s'
+            : (orbitalVelocity * speedValue).toFixed(1)
+              + ' px/s';
+
+
+    requestAnimationFrame(renderEngineLoop);
+}
+
+
+requestAnimationFrame(renderEngineLoop);
+
+</script>
+
+</body>
+</html>
